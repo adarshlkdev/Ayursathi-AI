@@ -152,4 +152,81 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * @route   POST /api/diagnose/ayurvedic-guidance
+ * @desc    Get personalized Ayurvedic lifestyle recommendations
+ * @access  Private
+ */
+router.post('/ayurvedic-guidance', authenticate, async (req, res) => {
+  try {
+    const { healthConcerns, lifestyle, season } = req.body;
+    
+    // Prepare user data for Ayurvedic analysis
+    const userData = {
+      age: req.user.age,
+      gender: req.user.gender,
+      healthConcerns: healthConcerns || 'General wellness',
+      lifestyle: lifestyle || 'Modern lifestyle',
+      season: season || 'Current season'
+    };
+
+    // Get Ayurvedic lifestyle recommendations
+    const ayurvedicGuidance = await aiService.generateAyurvedicGuidance(userData);
+
+    res.json({
+      success: true,
+      guidance: ayurvedicGuidance,
+      userProfile: {
+        age: userData.age,
+        gender: userData.gender
+      }
+    });
+  } catch (error) {
+    console.error('Ayurvedic guidance error:', error);
+    res.status(500).json({ error: true, message: 'Server error generating Ayurvedic guidance' });
+  }
+});
+
+/**
+ * @route   GET /api/diagnose/traditional-remedies/:category
+ * @desc    Get traditional Indian remedies for specific symptom category
+ * @access  Public
+ */
+router.get('/traditional-remedies/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    
+    if (!category) {
+      return res.status(400).json({ 
+        success: false, 
+        error: true, 
+        message: 'Category parameter is required' 
+      });
+    }
+    
+    const remedies = aiService.getTraditionalIndianRemedies(category);
+    
+    if (!remedies) {
+      return res.status(404).json({ 
+        success: false, 
+        error: true, 
+        message: 'No remedies found for this category' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      remedies,
+      disclaimer: "These are traditional home remedies for informational purposes. Consult healthcare providers for serious conditions."
+    });
+  } catch (error) {
+    console.error('Traditional remedies error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: true, 
+      message: 'Server error fetching traditional remedies' 
+    });
+  }
+});
+
 module.exports = router;
